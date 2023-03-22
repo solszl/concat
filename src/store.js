@@ -1,3 +1,4 @@
+import { dequal } from "dequal/lite";
 import { canProxy, INTERNAL_LISTENERS } from "./utils";
 
 export const Store = (initialObject = {}) => {
@@ -41,8 +42,11 @@ export const Store = (initialObject = {}) => {
       // 判断前一个和当前的值是否相等
       const hasPrevValue = Reflect.has(target, prop);
       let prevValue = Reflect.get(target, prop, receiver);
-      if (hasPrevValue && Object.is(prevValue, value)) {
-        return true;
+      if (hasPrevValue) {
+        const tempObj = JSON.parse(JSON.stringify(prevValue));
+        if (dequal(tempObj, value)) {
+          return true;
+        }
       }
 
       let childListeners = prevValue?.[INTERNAL_LISTENERS] ?? undefined;
@@ -68,9 +72,7 @@ export const Store = (initialObject = {}) => {
     },
   };
 
-  const baseObject = Array.isArray(initialObject)
-    ? []
-    : Object.create(Object.getPrototypeOf(initialObject));
+  const baseObject = Array.isArray(initialObject) ? [] : Object.create(Object.getPrototypeOf(initialObject));
   const proxyObj = new Proxy(baseObject, handler);
 
   Reflect.ownKeys(initialObject).forEach((key) => {
